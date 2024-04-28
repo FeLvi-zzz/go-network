@@ -14,8 +14,8 @@ type IPv4Packet struct {
 	ToS            uint8
 	TotalLength    uint16
 	Identification uint16
-	Flags          uint8  // 3bit
-	FlagmentOffset uint16 // 13bit
+	Flags          types.Flags // 3bit
+	FlagmentOffset uint16      // 13bit
 	TTL            uint8
 	Protocol       types.Protocol // uint8
 	HeaderChecksum uint16
@@ -37,7 +37,7 @@ func FromBytes(b []byte) (*IPv4Packet, []byte, error) {
 		ToS:            b[1],
 		TotalLength:    util.ToUint16(b[2:4]),
 		Identification: util.ToUint16(b[4:6]),
-		Flags:          (b[6] & 0xe0) >> 5,
+		Flags:          types.Flags((b[6] & 0xe0) >> 5),
 		FlagmentOffset: ((uint16(b[6]) & 0x1f) << 8) | uint16(b[7]),
 		TTL:            b[8],
 		Protocol:       types.Protocol(b[9]),
@@ -66,7 +66,7 @@ func (p *IPv4Packet) Inspect() {
 	fmt.Printf("  ToS: %8b\n", p.ToS)
 	fmt.Printf("  TotalLength: %d octets\n", p.TotalLength)
 	fmt.Printf("  Identification: %d\n", p.Identification)
-	fmt.Printf("  Flags: %03b\n", p.Flags)
+	fmt.Printf("  Flags: %s\n", p.Flags.ToString())
 	fmt.Printf("  FlagmentOffset: %d\n", p.FlagmentOffset)
 	fmt.Printf("  TTL: %d\n", p.TTL)
 	fmt.Printf("  Protocol: %s\n", p.Protocol.ToString())
@@ -87,7 +87,7 @@ func (p *IPv4Packet) Bytes() []byte {
 		byte(p.TotalLength),
 		byte(p.Identification>>8),
 		byte(p.Identification),
-		p.Flags<<5|uint8(p.FlagmentOffset>>8),
+		uint8(p.Flags)<<5|uint8(p.FlagmentOffset>>8),
 		byte(p.FlagmentOffset),
 		p.TTL,
 		byte(p.Protocol),

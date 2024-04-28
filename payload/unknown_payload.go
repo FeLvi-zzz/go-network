@@ -12,8 +12,11 @@ type UnknownPayload struct {
 }
 
 func NewUnknownPayload(b []byte) *UnknownPayload {
+	nb := make([]byte, len(b))
+	copy(nb, b)
+
 	return &UnknownPayload{
-		b: b,
+		b: nb,
 	}
 }
 
@@ -23,6 +26,7 @@ func (b *UnknownPayload) Bytes() []byte {
 
 func (b *UnknownPayload) Inspect() {
 	fmt.Println("Unknown Payload:")
+	fmt.Printf("  length: %d bytes\n", len(b.b))
 	for i := 0; i < len(b.b); i++ {
 		if i%16 == 0 {
 			fmt.Print("  ")
