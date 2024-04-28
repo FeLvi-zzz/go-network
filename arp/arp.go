@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	ethtypes "github.com/FeLvi-zzz/go-network/ethernet/types"
+	ipv4types "github.com/FeLvi-zzz/go-network/ipv4/types"
 	"github.com/FeLvi-zzz/go-network/payload"
 	"github.com/FeLvi-zzz/go-network/util"
 )
@@ -132,7 +133,7 @@ func ProtocolAddressToString(b []byte, protocol ethtypes.EtherType) string {
 		if len(b) != 4 {
 			panic("this is not ipv4 address")
 		}
-		return fmt.Sprintf("%d.%d.%d.%d", b[0], b[1], b[2], b[3])
+		return ipv4types.Address(b).ToString()
 	default:
 		panic(fmt.Sprintf("unknown protocol: %s", protocol.ToString()))
 	}

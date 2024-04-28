@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"github.com/FeLvi-zzz/go-network/payload"
+	"github.com/FeLvi-zzz/go-network/util"
 )
 
 type Handler struct {
@@ -34,6 +35,9 @@ func (h *Handler) Handle() error {
 
 		p, err := h.ethConsumer.Consume(b)
 		if errors.Is(err, payload.ErrUnknownPayload) {
+			continue
+		}
+		if errors.Is(err, util.ErrIgnorablePacket) {
 			continue
 		}
 

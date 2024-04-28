@@ -5,6 +5,7 @@ import (
 
 	"github.com/FeLvi-zzz/go-network/arp"
 	"github.com/FeLvi-zzz/go-network/ethernet"
+	"github.com/FeLvi-zzz/go-network/ipv4"
 	"github.com/FeLvi-zzz/go-network/kernel"
 )
 
@@ -30,12 +31,14 @@ func _main() error {
 	kernelConfig := kernel.NewConfig(fd, ifIndex)
 	ethConfig := ethernet.NewConfig(srcHrdAddr, broadcastHrdAddr)
 	arpConfig := arp.NewConfig(srcHrdAddr, srcPrtAddr)
+	ipv4Config := ipv4.NewConfig(srcPrtAddr)
 
 	kernelSender := kernel.NewSender(kernelConfig)
 	ethSender := ethernet.NewSender(ethConfig, kernelSender)
 
 	arpConsumer := arp.NewConsumer(arpConfig, ethSender)
-	ethConsumer := ethernet.NewConsumer(ethConfig, arpConsumer, kernelSender)
+	ipv4Consumer := ipv4.NewConsumer(ipv4Config)
+	ethConsumer := ethernet.NewConsumer(ethConfig, arpConsumer, ipv4Consumer, kernelSender)
 
 	kernelHandler := kernel.NewHandler(kernelConfig, ethConsumer)
 	arpHandler := arp.NewHandler(arpConfig, ethSender)
