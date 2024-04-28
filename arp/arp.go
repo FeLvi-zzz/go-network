@@ -3,7 +3,8 @@ package arp
 import (
 	"fmt"
 
-	"github.com/FeLvi-zzz/go-network/ethernet"
+	ethtypes "github.com/FeLvi-zzz/go-network/ethernet/types"
+	"github.com/FeLvi-zzz/go-network/payload"
 	"github.com/FeLvi-zzz/go-network/util"
 )
 
@@ -25,9 +26,14 @@ func (a ArpOp) ToString() string {
 	}
 }
 
+type sender interface {
+	// send arp payload
+	ArpSend(targetHwAddr []byte, payload payload.Payload) error
+}
+
 type ArpPayload struct {
 	Hrd uint16
-	Pro ethernet.EtherType // uint16
+	Pro ethtypes.EtherType // uint16
 	Hln uint8
 	Pln uint8
 	Op  ArpOp
@@ -38,7 +44,7 @@ type ArpPayload struct {
 }
 
 func NewPayload(
-	protocol ethernet.EtherType,
+	protocol ethtypes.EtherType,
 	op ArpOp,
 	localHardAddr []byte,
 	localProtoAddr []byte,
@@ -46,10 +52,10 @@ func NewPayload(
 	remoteProtoAddr []byte,
 ) *ArpPayload {
 	switch protocol {
-	case ethernet.EtherType_IPv4:
+	case ethtypes.EtherType_IPv4:
 		return &ArpPayload{
 			Hrd: 1, // Ethernet = 1
-			Pro: ethernet.EtherType_IPv4,
+			Pro: ethtypes.EtherType_IPv4,
 			Hln: 6, // Ethernet address length
 			Pln: 4, // IPv4 address length
 			Op:  op,
@@ -63,7 +69,7 @@ func NewPayload(
 	}
 }
 
-func (p *ArpPayload) ToBytes() []byte {
+func (p *ArpPayload) Bytes() []byte {
 	b := make([]byte, 0, 8+p.Hln+p.Pln+p.Hln+p.Pln)
 
 	b = append(b, []byte{
@@ -98,7 +104,7 @@ func FromBytes(b []byte) (*ArpPayload, error) {
 
 	return &ArpPayload{
 		Hrd: util.ToUint16(b[0:2]),
-		Pro: ethernet.EtherType(util.ToUint16(b[2:4])),
+		Pro: ethtypes.EtherType(util.ToUint16(b[2:4])),
 		Hln: hln,
 		Pln: pln,
 		Op:  ArpOp(util.ToUint16(b[6:8])),
@@ -114,15 +120,15 @@ func (a *ArpPayload) Inspect() {
 	fmt.Printf("  HardwareType: %x\n", a.Hrd)
 	fmt.Printf("  Protocol: %s\n", a.Pro.ToString())
 	fmt.Printf("  Op: %s\n", a.Op.ToString())
-	fmt.Printf("  SrcHardwareAddress: %s\n", ethernet.HardwareAddressToString(a.Sha))
+	fmt.Printf("  SrcHardwareAddress: %s\n", ethtypes.Address(a.Sha).ToString())
 	fmt.Printf("  SrcProtocolAddress: %s\n", ProtocolAddressToString(a.Spa, a.Pro))
-	fmt.Printf("  DstHardwareAddress: %s\n", ethernet.HardwareAddressToString(a.Tha))
+	fmt.Printf("  DstHardwareAddress: %s\n", ethtypes.Address(a.Tha).ToString())
 	fmt.Printf("  DstProtocolAddress: %s\n", ProtocolAddressToString(a.Tpa, a.Pro))
 }
 
-func ProtocolAddressToString(b []byte, protocol ethernet.EtherType) string {
+func ProtocolAddressToString(b []byte, protocol ethtypes.EtherType) string {
 	switch protocol {
-	case ethernet.EtherType_IPv4:
+	case ethtypes.EtherType_IPv4:
 		if len(b) != 4 {
 			panic("this is not ipv4 address")
 		}

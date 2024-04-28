@@ -1,10 +1,11 @@
 package main
 
 import (
-	"sync"
 	"syscall"
 
 	"github.com/FeLvi-zzz/go-network/arp"
+	"github.com/FeLvi-zzz/go-network/ethernet"
+	"github.com/FeLvi-zzz/go-network/kernel"
 )
 
 func main() {
@@ -26,13 +27,26 @@ func _main() error {
 	dstPrtAddr := []byte{172, 20, 144, 1}
 	ifIndex := 2
 
-	mu := new(sync.Mutex)
+	kernelConfig := kernel.NewConfig(fd, ifIndex)
+	ethConfig := ethernet.NewConfig(srcHrdAddr, broadcastHrdAddr)
+	arpConfig := arp.NewConfig(srcHrdAddr, srcPrtAddr)
 
-	arpsvc := arp.NewService(mu, fd, srcHrdAddr, broadcastHrdAddr, srcPrtAddr, dstPrtAddr, ifIndex)
+	kernelSender := kernel.NewSender(kernelConfig)
+	ethSender := ethernet.NewSender(ethConfig, kernelSender)
+
+	arpConsumer := arp.NewConsumer(arpConfig, ethSender)
+	ethConsumer := ethernet.NewConsumer(ethConfig, arpConsumer, kernelSender)
+
+	kernelHandler := kernel.NewHandler(kernelConfig, ethConsumer)
+	arpHandler := arp.NewHandler(arpConfig, ethSender)
+
+	if err := arpHandler.Startup(dstPrtAddr); err != nil {
+		return err
+	}
 
 	errch := make(chan error)
 	go func() {
-		errch <- arpsvc.Start()
+		errch <- kernelHandler.Handle()
 	}()
 
 	return <-errch
