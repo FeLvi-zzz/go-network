@@ -38,7 +38,7 @@ func (c *Consumer) Consume(b []byte) (payload.Payload, error) {
 		c.config.localHrdAddr,
 		c.config.localPrtAddr,
 		pap.Sha,
-		pap.Tpa,
+		pap.Spa,
 	)
 
 	if err := c.sender.ArpSend(pap.Sha, nap); err != nil {

@@ -47,10 +47,10 @@ type ArpPayload struct {
 func NewPayload(
 	protocol ethtypes.EtherType,
 	op ArpOp,
-	localHardAddr []byte,
-	localProtoAddr []byte,
-	remoteHardAddr []byte,
-	remoteProtoAddr []byte,
+	srcHardAddr []byte,
+	srcProtoAddr []byte,
+	dstHardAddr []byte,
+	dstProtoAddr []byte,
 ) *ArpPayload {
 	switch protocol {
 	case ethtypes.EtherType_IPv4:
@@ -60,10 +60,10 @@ func NewPayload(
 			Hln: 6, // Ethernet address length
 			Pln: 4, // IPv4 address length
 			Op:  op,
-			Sha: localHardAddr,
-			Spa: localProtoAddr,
-			Tha: remoteHardAddr,
-			Tpa: remoteProtoAddr,
+			Sha: srcHardAddr,
+			Spa: srcProtoAddr,
+			Tha: dstHardAddr,
+			Tpa: dstProtoAddr,
 		}
 	default:
 		return &ArpPayload{}
