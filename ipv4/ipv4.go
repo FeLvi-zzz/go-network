@@ -70,13 +70,17 @@ func (p *IPv4Packet) Inspect() {
 	fmt.Printf("  FlagmentOffset: %d\n", p.FlagmentOffset)
 	fmt.Printf("  TTL: %d\n", p.TTL)
 	fmt.Printf("  Protocol: %s\n", p.Protocol.ToString())
-	fmt.Printf("  HeaderChecksum: %d\n", p.HeaderChecksum)
+	fmt.Printf("  HeaderChecksum: %04x (isValid? => %t)\n", p.HeaderChecksum, p.IsValid())
 	fmt.Printf("  SrcAddr: %s\n", p.SrcAddr.ToString())
 	fmt.Printf("  DstAddr: %s\n", p.DstAddr.ToString())
 	p.Payload.Inspect()
 }
 
 func (p *IPv4Packet) Bytes() []byte {
+	return append(p.HeaderBytes(), p.Payload.Bytes()...)
+}
+
+func (p *IPv4Packet) HeaderBytes() []byte {
 	b := make([]byte, 0, 20) // header min length
 
 	b = append(
@@ -100,7 +104,14 @@ func (p *IPv4Packet) Bytes() []byte {
 	for i := 0; i < len(p.Options)%4; i++ {
 		b = append(b, 0)
 	}
-	b = append(b, p.Payload.Bytes()...)
 
 	return b
+}
+
+func (p *IPv4Packet) IsValid() bool {
+	return p.CalcChecksum() == 0
+}
+
+func (p *IPv4Packet) CalcChecksum() uint16 {
+	return util.CalcCheckSum(p.HeaderBytes())
 }
