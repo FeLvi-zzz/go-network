@@ -3,15 +3,24 @@ package ipv4
 import (
 	"fmt"
 
+	"github.com/FeLvi-zzz/go-network/ipv4/types"
 	"github.com/FeLvi-zzz/go-network/payload"
+	"github.com/FeLvi-zzz/go-network/util"
 )
 
 type Consumer struct {
 	config          *Config
 	fragmentBuilder fragmentBuilder
-	// sender sender
+	sender          sender
+	icmpConsumer    icmpConsumer
 }
 
+type icmpConsumer interface {
+	Consume(b []byte, dstAddr []byte) (payload.Payload, error)
+}
+
+// TODO: set framents lifetime 15 sec
+// https://datatracker.ietf.org/doc/html/rfc791#autoid-10
 type fragmentBuilder map[uint16]map[int][]byte
 
 func (f fragmentBuilder) Add(id uint16, offset int, b []byte) {
@@ -48,10 +57,12 @@ func (f fragmentBuilder) Build(id uint16) ([]byte, error) {
 	}
 }
 
-func NewConsumer(config *Config) *Consumer {
+func NewConsumer(config *Config, sender sender, icmpConsumer icmpConsumer) *Consumer {
 	return &Consumer{
 		config:          config,
 		fragmentBuilder: make(fragmentBuilder),
+		sender:          sender,
+		icmpConsumer:    icmpConsumer,
 	}
 }
 
@@ -70,14 +81,19 @@ func (c *Consumer) Consume(b []byte) (payload.Payload, error) {
 		if err != nil {
 			return payload.NewFragmentPayload(len(rb)), err
 		}
-		// TODO: consume higher protocol
-		// up, err := c.udpConsumer.Consume(c.fragmentBuffer[v4p.Identification])
-		// if err != nil {
-		// 	return payload.NewUnknownPayload(c.fragmentBuffer[v4p.Identification]), err
-		// }
-		// v4p.Payload = up
 
-		v4p.Payload = payload.NewUnknownPayload(nrb)
+		switch v4p.Protocol {
+		case types.Protocol_ICMP:
+			icp, err := c.icmpConsumer.Consume(nrb, v4p.SrcAddr[:])
+			if err != nil {
+				return payload.NewUnknownPayload(nrb), err
+			}
+			v4p.Payload = icp
+		default:
+			v4p.Payload = payload.NewUnknownPayload(nrb)
+			// debug: ignore except for icmp
+			return v4p, fmt.Errorf("%w", util.ErrIgnorablePacket)
+		}
 	}
 
 	return v4p, nil

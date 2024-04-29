@@ -16,7 +16,7 @@ func NewHandler(config *Config, sender sender) *Handler {
 	}
 }
 
-func (h *Handler) Startup(dstPrtAddr []byte) error {
+func (h *Handler) Request(dstPrtAddr []byte) error {
 	ap := NewPayload(
 		ethtypes.EtherType_IPv4,
 		ArpOp_REQUEST,
@@ -26,7 +26,23 @@ func (h *Handler) Startup(dstPrtAddr []byte) error {
 		dstPrtAddr,
 	)
 
-	h.sender.ArpSend(nil, ap)
+	if err := h.sender.ArpSend(nil, ap); err != nil {
+		return err
+	}
 
 	return nil
+}
+
+func (h *Handler) Resolve(targetPrtAddr []byte) ([]byte, error) {
+	if addr, ok := globalArpTable[[4]byte(targetPrtAddr)]; ok {
+		return addr[:], nil
+	}
+
+	if err := h.Request(targetPrtAddr); err != nil {
+		return nil, err
+	}
+
+	addr := globalArpTable[[4]byte(targetPrtAddr)]
+
+	return addr[:], nil
 }

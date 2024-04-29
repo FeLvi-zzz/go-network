@@ -115,3 +115,29 @@ func (p *IPv4Packet) IsValid() bool {
 func (p *IPv4Packet) CalcChecksum() uint16 {
 	return util.CalcCheckSum(p.HeaderBytes())
 }
+
+func NewIPv4Packet(targetAddr types.Address, localAddr types.Address, idCount uint16, protocol types.Protocol, payload payload.Payload) *IPv4Packet {
+	p := &IPv4Packet{
+		Version: 4,
+		IHL:     5,
+		ToS:     0,
+		// TotalLength    uint16
+		Identification: idCount,
+		Flags:          0,
+		FlagmentOffset: 0,
+		TTL:            64,
+		Protocol:       protocol,
+		// HeaderChecksum uint16
+		SrcAddr: localAddr,
+		DstAddr: targetAddr,
+		Payload: payload,
+	}
+
+	b := p.Bytes()
+	p.TotalLength = uint16(len(b))
+
+	b = p.Bytes()
+	p.HeaderChecksum = util.CalcCheckSum(b)
+
+	return p
+}

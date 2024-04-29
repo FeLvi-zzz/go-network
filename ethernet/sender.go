@@ -30,3 +30,13 @@ func (s *Sender) ArpSend(targetHwAddr []byte, payload payload.Payload) error {
 	)
 	return s.sender.Send(eh)
 }
+
+func (s *Sender) IPv4Send(targetHwAddr []byte, payload payload.Payload) error {
+	eh := NewEthernetFrame(
+		targetHwAddr,
+		s.config.LocalHrdAddr,
+		types.EtherType_IPv4,
+		payload,
+	)
+	return s.sender.Send(eh)
+}

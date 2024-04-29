@@ -5,7 +5,9 @@ import (
 
 	"github.com/FeLvi-zzz/go-network/arp"
 	"github.com/FeLvi-zzz/go-network/ethernet"
+	"github.com/FeLvi-zzz/go-network/icmp"
 	"github.com/FeLvi-zzz/go-network/ipv4"
+	ipv4types "github.com/FeLvi-zzz/go-network/ipv4/types"
 	"github.com/FeLvi-zzz/go-network/kernel"
 )
 
@@ -31,19 +33,29 @@ func _main() error {
 	kernelConfig := kernel.NewConfig(fd, ifIndex)
 	ethConfig := ethernet.NewConfig(srcHrdAddr, broadcastHrdAddr)
 	arpConfig := arp.NewConfig(srcHrdAddr, srcPrtAddr)
-	ipv4Config := ipv4.NewConfig(srcPrtAddr)
+	ipv4Config := ipv4.NewConfig(srcPrtAddr, ipv4.NewRouteTable(
+		[]ipv4.RouteTableRecord{
+			{Subnet: ipv4types.Address(dstPrtAddr), SubnetMask: 20, TargetIp: ipv4types.Address{}},
+			{Subnet: ipv4types.Address{}, SubnetMask: 0, TargetIp: ipv4types.Address(dstPrtAddr)},
+		},
+	))
+	icmpConfig := icmp.NewConfig()
 
 	kernelSender := kernel.NewSender(kernelConfig)
 	ethSender := ethernet.NewSender(ethConfig, kernelSender)
 
+	arpHandler := arp.NewHandler(arpConfig, ethSender)
+
+	ipv4Sender := ipv4.NewSender(ipv4Config, ethSender, arpHandler)
+	icmpConsumer := icmp.NewConsumer(icmpConfig, ipv4Sender)
 	arpConsumer := arp.NewConsumer(arpConfig, ethSender)
-	ipv4Consumer := ipv4.NewConsumer(ipv4Config)
+
+	ipv4Consumer := ipv4.NewConsumer(ipv4Config, ethSender, icmpConsumer)
 	ethConsumer := ethernet.NewConsumer(ethConfig, arpConsumer, ipv4Consumer, kernelSender)
 
 	kernelHandler := kernel.NewHandler(kernelConfig, ethConsumer)
-	arpHandler := arp.NewHandler(arpConfig, ethSender)
 
-	if err := arpHandler.Startup(dstPrtAddr); err != nil {
+	if err := arpHandler.Request(dstPrtAddr); err != nil {
 		return err
 	}
 

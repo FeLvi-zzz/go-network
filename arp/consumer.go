@@ -24,6 +24,10 @@ func (c *Consumer) Consume(b []byte) (payload.Payload, error) {
 		return payload.NewUnknownPayload(b), err
 	}
 
+	if pap.Op == ArpOp_RESPONSE {
+		globalArpTable[[4]byte(pap.Spa)] = [6]byte(pap.Sha)
+	}
+
 	if !(pap.Op == ArpOp_REQUEST && bytes.Equal(pap.Tpa, c.config.localPrtAddr)) {
 		return pap, nil
 	}
