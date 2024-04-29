@@ -28,7 +28,7 @@ func NewSender(config *Config, sender sender, ar addressResolver) *Sender {
 	}
 }
 
-func (s *Sender) ICMPSend(targetAddr []byte, payload payload.Payload) error {
+func (s *Sender) send(targetAddr []byte, protocol types.Protocol, payload payload.Payload) error {
 	defer func() {
 		s.idCount++
 	}()
@@ -37,7 +37,7 @@ func (s *Sender) ICMPSend(targetAddr []byte, payload payload.Payload) error {
 		types.Address(targetAddr),
 		types.Address(s.config.localPrtAddr),
 		s.idCount,
-		types.Protocol_ICMP,
+		protocol,
 		payload,
 	)
 
@@ -53,4 +53,12 @@ func (s *Sender) ICMPSend(targetAddr []byte, payload payload.Payload) error {
 	}
 
 	return nil
+}
+
+func (s *Sender) ICMPSend(targetAddr []byte, payload payload.Payload) error {
+	return s.send(targetAddr, types.Protocol_ICMP, payload)
+}
+
+func (s *Sender) UDPSend(targetAddr []byte, payload payload.Payload) error {
+	return s.send(targetAddr, types.Protocol_UDP, payload)
 }

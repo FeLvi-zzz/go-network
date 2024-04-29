@@ -9,6 +9,7 @@ import (
 	"github.com/FeLvi-zzz/go-network/ipv4"
 	ipv4types "github.com/FeLvi-zzz/go-network/ipv4/types"
 	"github.com/FeLvi-zzz/go-network/kernel"
+	"github.com/FeLvi-zzz/go-network/udp"
 )
 
 func main() {
@@ -40,6 +41,7 @@ func _main() error {
 		},
 	))
 	icmpConfig := icmp.NewConfig()
+	udpConfig := udp.NewConfig()
 
 	kernelSender := kernel.NewSender(kernelConfig)
 	ethSender := ethernet.NewSender(ethConfig, kernelSender)
@@ -49,8 +51,9 @@ func _main() error {
 	ipv4Sender := ipv4.NewSender(ipv4Config, ethSender, arpHandler)
 	icmpConsumer := icmp.NewConsumer(icmpConfig, ipv4Sender)
 	arpConsumer := arp.NewConsumer(arpConfig, ethSender)
+	udpConsumer := udp.NewConsumer(udpConfig, ipv4Sender)
 
-	ipv4Consumer := ipv4.NewConsumer(ipv4Config, ethSender, icmpConsumer)
+	ipv4Consumer := ipv4.NewConsumer(ipv4Config, ethSender, icmpConsumer, udpConsumer)
 	ethConsumer := ethernet.NewConsumer(ethConfig, arpConsumer, ipv4Consumer, kernelSender)
 
 	kernelHandler := kernel.NewHandler(kernelConfig, ethConsumer)

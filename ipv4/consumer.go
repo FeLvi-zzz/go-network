@@ -13,9 +13,14 @@ type Consumer struct {
 	fragmentBuilder fragmentBuilder
 	sender          sender
 	icmpConsumer    icmpConsumer
+	udpConsumer     udpConsumer
 }
 
 type icmpConsumer interface {
+	Consume(b []byte, dstAddr []byte) (payload.Payload, error)
+}
+
+type udpConsumer interface {
 	Consume(b []byte, dstAddr []byte) (payload.Payload, error)
 }
 
@@ -57,12 +62,13 @@ func (f fragmentBuilder) Build(id uint16) ([]byte, error) {
 	}
 }
 
-func NewConsumer(config *Config, sender sender, icmpConsumer icmpConsumer) *Consumer {
+func NewConsumer(config *Config, sender sender, icmpConsumer icmpConsumer, udpConsumer udpConsumer) *Consumer {
 	return &Consumer{
 		config:          config,
 		fragmentBuilder: make(fragmentBuilder),
 		sender:          sender,
 		icmpConsumer:    icmpConsumer,
+		udpConsumer:     udpConsumer,
 	}
 }
 
@@ -89,6 +95,12 @@ func (c *Consumer) Consume(b []byte) (payload.Payload, error) {
 				return payload.NewUnknownPayload(nrb), err
 			}
 			v4p.Payload = icp
+		case types.Protocol_UDP:
+			up, err := c.udpConsumer.Consume(nrb, v4p.SrcAddr[:])
+			if err != nil {
+				return payload.NewUnknownPayload(nrb), err
+			}
+			v4p.Payload = up
 		default:
 			v4p.Payload = payload.NewUnknownPayload(nrb)
 			// debug: ignore except for icmp
