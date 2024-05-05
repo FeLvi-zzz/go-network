@@ -21,7 +21,7 @@ type icmpConsumer interface {
 }
 
 type udpConsumer interface {
-	Consume(b []byte, dstAddr []byte) (payload.Payload, error)
+	Consume(b []byte, ph []byte) (payload.Payload, error)
 }
 
 // TODO: set framents lifetime 15 sec
@@ -77,6 +77,10 @@ func (c *Consumer) Consume(b []byte) (payload.Payload, error) {
 	if err != nil {
 		return payload.NewUnknownPayload(b), err
 	}
+	if v4p.DstAddr != types.Address(c.config.localPrtAddr) {
+		// debug: ignote the other dest packet
+		return nil, fmt.Errorf("%w", util.ErrIgnorablePacket)
+	}
 
 	c.fragmentBuilder.Add(v4p.Identification, int(v4p.FlagmentOffset)*8, rb)
 
@@ -96,7 +100,7 @@ func (c *Consumer) Consume(b []byte) (payload.Payload, error) {
 			}
 			v4p.Payload = icp
 		case types.Protocol_UDP:
-			up, err := c.udpConsumer.Consume(nrb, v4p.SrcAddr[:])
+			up, err := c.udpConsumer.Consume(nrb, v4p.genUdpPseudoHeader(len(nrb)))
 			if err != nil {
 				return payload.NewUnknownPayload(nrb), err
 			}

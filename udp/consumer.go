@@ -20,8 +20,8 @@ func NewConsumer(config *Config, sender sender) *Consumer {
 	}
 }
 
-func (c *Consumer) Consume(b []byte, dstAddr []byte) (payload.Payload, error) {
-	up, err := FromBytes(b)
+func (c *Consumer) Consume(b []byte, ph []byte) (payload.Payload, error) {
+	up, err := FromBytes(b, ph)
 	if err != nil {
 		return payload.NewUnknownPayload(b), err
 	}

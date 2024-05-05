@@ -141,3 +141,15 @@ func NewIPv4Packet(targetAddr types.Address, localAddr types.Address, idCount ui
 
 	return p
 }
+
+func (p *IPv4Packet) genUdpPseudoHeader(l int) []byte {
+	b := make([]byte, 0, 12)
+	b = append(b, p.SrcAddr[:]...)
+	b = append(b, p.DstAddr[:]...)
+	b = append(b, 0)
+	b = append(b, byte(types.Protocol_UDP))
+	b = append(b, byte(l>>8))
+	b = append(b, byte(l))
+
+	return b
+}

@@ -13,19 +13,22 @@ type Datagram struct {
 	Length   uint16
 	Checksum uint16
 	Data     payload.Payload
+
+	PseudoHeader [12]byte
 }
 
-func FromBytes(b []byte) (*Datagram, error) {
+func FromBytes(b []byte, ph []byte) (*Datagram, error) {
 	if len(b) < 8 {
 		return nil, fmt.Errorf("udp header is broken")
 	}
 
 	return &Datagram{
-		SrcPort:  util.ToUint16(b[0:2]),
-		DstPort:  util.ToUint16(b[2:4]),
-		Length:   util.ToUint16(b[4:6]),
-		Checksum: util.CalcCheckSum(b[6:8]),
-		Data:     payload.NewDataPayload(b[8:]),
+		SrcPort:      util.ToUint16(b[0:2]),
+		DstPort:      util.ToUint16(b[2:4]),
+		Length:       util.ToUint16(b[4:6]),
+		Checksum:     util.ToUint16(b[6:8]),
+		Data:         payload.NewDataPayload(b[8:]),
+		PseudoHeader: [12]byte(ph),
 	}, nil
 }
 
@@ -52,6 +55,10 @@ func (d *Datagram) Inspect() {
 	fmt.Printf("  SrcPort: %d\n", d.SrcPort)
 	fmt.Printf("  DstPort: %d\n", d.DstPort)
 	fmt.Printf("  Length: %d\n", d.Length)
-	fmt.Printf("  Checksum: %d\n", d.Checksum)
+	fmt.Printf("  Checksum: %04x (isValid? => %t)\n", d.Checksum, d.IsValid())
 	d.Data.Inspect()
+}
+
+func (d *Datagram) IsValid() bool {
+	return util.CalcCheckSum(append(d.PseudoHeader[:], d.Bytes()...)) == 0
 }
