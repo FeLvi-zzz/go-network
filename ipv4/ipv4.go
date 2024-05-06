@@ -133,11 +133,8 @@ func NewIPv4Packet(targetAddr types.Address, localAddr types.Address, idCount ui
 		Payload: payload,
 	}
 
-	b := p.Bytes()
-	p.TotalLength = uint16(len(b))
-
-	b = p.Bytes()
-	p.HeaderChecksum = util.CalcCheckSum(b)
+	p.TotalLength = uint16(len(p.Bytes()))
+	p.HeaderChecksum = util.CalcCheckSum(p.HeaderBytes())
 
 	return p
 }

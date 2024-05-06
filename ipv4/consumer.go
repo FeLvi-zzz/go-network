@@ -21,7 +21,7 @@ type icmpConsumer interface {
 }
 
 type udpConsumer interface {
-	Consume(b []byte, ph []byte) (payload.Payload, error)
+	Consume(b []byte, ph []byte, srcAddr []byte, dstAddr []byte) (payload.Payload, error)
 }
 
 // TODO: set framents lifetime 15 sec
@@ -100,7 +100,7 @@ func (c *Consumer) Consume(b []byte) (payload.Payload, error) {
 			}
 			v4p.Payload = icp
 		case types.Protocol_UDP:
-			up, err := c.udpConsumer.Consume(nrb, v4p.genUdpPseudoHeader(len(nrb)))
+			up, err := c.udpConsumer.Consume(nrb, v4p.genUdpPseudoHeader(len(nrb)), v4p.SrcAddr[:], v4p.DstAddr[:])
 			if err != nil {
 				return payload.NewUnknownPayload(nrb), err
 			}

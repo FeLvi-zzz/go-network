@@ -41,8 +41,10 @@ func (h *Handler) Handle() error {
 			continue
 		}
 
+		h.config.mu.Lock()
 		fmt.Printf("\n-- recv packet --\n")
 		p.Inspect()
+		h.config.mu.Unlock()
 
 		if err != nil {
 			return err

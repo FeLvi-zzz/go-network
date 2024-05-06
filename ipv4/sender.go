@@ -62,3 +62,15 @@ func (s *Sender) ICMPSend(targetAddr []byte, payload payload.Payload) error {
 func (s *Sender) UDPSend(targetAddr []byte, payload payload.Payload) error {
 	return s.send(targetAddr, types.Protocol_UDP, payload)
 }
+
+func (s *Sender) UDPPseudoHeader(srcAddr []byte, dstAddr []byte, datalen int) []byte {
+	b := make([]byte, 0, 12)
+	b = append(b, srcAddr...)
+	b = append(b, dstAddr...)
+	b = append(b, 0)
+	b = append(b, byte(types.Protocol_UDP))
+	b = append(b, byte(datalen>>8))
+	b = append(b, byte(datalen))
+
+	return b
+}

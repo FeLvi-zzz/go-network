@@ -18,8 +18,10 @@ func NewSender(config *Config) *Sender {
 }
 
 func (s *Sender) Send(payload payload.Payload) error {
+	s.config.mu.Lock()
 	fmt.Printf("\n-- send packet --\n")
 	payload.Inspect()
+	s.config.mu.Unlock()
 
 	if err := syscall.Sendto(s.config.fd, payload.Bytes(), syscall.MSG_CONFIRM, &syscall.SockaddrLinklayer{
 		Ifindex: s.config.ifIndex,

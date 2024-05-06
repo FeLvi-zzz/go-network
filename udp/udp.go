@@ -14,7 +14,7 @@ type Datagram struct {
 	Checksum uint16
 	Data     payload.Payload
 
-	PseudoHeader [12]byte
+	PseudoHeader []byte
 }
 
 func FromBytes(b []byte, ph []byte) (*Datagram, error) {
@@ -28,7 +28,7 @@ func FromBytes(b []byte, ph []byte) (*Datagram, error) {
 		Length:       util.ToUint16(b[4:6]),
 		Checksum:     util.ToUint16(b[6:8]),
 		Data:         payload.NewDataPayload(b[8:]),
-		PseudoHeader: [12]byte(ph),
+		PseudoHeader: ph,
 	}, nil
 }
 
@@ -59,6 +59,22 @@ func (d *Datagram) Inspect() {
 	d.Data.Inspect()
 }
 
+func (d *Datagram) CalcCheckSum() uint16 {
+	return util.CalcCheckSum(append(d.PseudoHeader, d.Bytes()...))
+}
+
 func (d *Datagram) IsValid() bool {
-	return util.CalcCheckSum(append(d.PseudoHeader[:], d.Bytes()...)) == 0
+	return d.CalcCheckSum() == 0
+}
+
+func NewDatagram(srcPort uint16, dstPort uint16, data payload.Payload) *Datagram {
+	db := data.Bytes()
+
+	return &Datagram{
+		SrcPort: srcPort,
+		DstPort: dstPort,
+		Length:  uint16(8 + len(db)),
+		// Checksum: 0, // calc later
+		Data: data,
+	}
 }

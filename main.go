@@ -10,6 +10,7 @@ import (
 	ipv4types "github.com/FeLvi-zzz/go-network/ipv4/types"
 	"github.com/FeLvi-zzz/go-network/kernel"
 	"github.com/FeLvi-zzz/go-network/udp"
+	"github.com/FeLvi-zzz/go-network/udp/sample"
 )
 
 func main() {
@@ -25,7 +26,7 @@ func _main() error {
 		return err
 	}
 
-	srcHrdAddr := []byte{0x00, 0x15, 0x5d, 0x55, 0xa2, 0x9b}
+	srcHrdAddr := []byte{0x00, 0x15, 0x5d, 0x55, 0xa0, 0x26}
 	broadcastHrdAddr := []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 	srcPrtAddr := []byte{172, 20, 159, 90}
 	dstPrtAddr := []byte{172, 20, 144, 1}
@@ -66,8 +67,15 @@ func _main() error {
 	go func() {
 		errch <- kernelHandler.Handle()
 	}()
+	go func() {
+		errch <- sample.Serve(ipv4Sender, srcPrtAddr, 53)
+	}()
 
-	return <-errch
+	for {
+		if err := <-errch; err != nil {
+			return err
+		}
+	}
 }
 
 func htons(i uint16) uint16 {
