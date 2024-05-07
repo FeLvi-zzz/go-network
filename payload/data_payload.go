@@ -2,6 +2,7 @@ package payload
 
 import (
 	"fmt"
+	"strings"
 )
 
 type DataPayload struct {
@@ -24,20 +25,36 @@ func (b *DataPayload) Bytes() []byte {
 func (b *DataPayload) Inspect() {
 	fmt.Println("Data:")
 	fmt.Printf("  length: %d bytes\n", len(b.b))
+
+	if len(b.b) == 0 {
+		return
+	}
+
+	hexstr := make([][]string, len(b.b)/16+1)
+	asciistr := make([][]byte, len(b.b)/16+1)
+
 	for i := 0; i < len(b.b); i++ {
 		if i%16 == 0 {
-			fmt.Print("  ")
+			hexstr[i/16] = make([]string, 16)
+			asciistr[i/16] = make([]byte, 16)
 		}
 
-		fmt.Printf("%02x", b.b[i])
-
-		if i%16 == 15 {
-			fmt.Printf("\n")
+		hexstr[i/16][i%16] = fmt.Sprintf("%02x", b.b[i])
+		var as byte
+		if 0x20 <= b.b[i] && b.b[i] <= 0x7e {
+			as = b.b[i]
 		} else {
-			fmt.Print(" ")
+			as = byte('.')
 		}
+		asciistr[i/16][i%16] = as
 	}
-	if len(b.b)%16 != 0 {
-		fmt.Println("")
+
+	for i := 0; i < len(b.b)/16+1; i++ {
+		for j := range hexstr[i] {
+			if hexstr[i][j] == "" {
+				hexstr[i][j] = "  "
+			}
+		}
+		fmt.Printf("  %s | %s\n", strings.Join(hexstr[i], " "), asciistr[i])
 	}
 }
