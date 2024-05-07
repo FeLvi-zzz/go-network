@@ -8,14 +8,16 @@ import (
 )
 
 type Conn struct {
-	laddr   types.Address
-	raddr   types.Address
-	data    []byte
-	sender  sender
-	cleanup func() error
+	laddr     types.Address
+	raddr     types.Address
+	readReady chan struct{}
+	data      []byte
+	sender    sender
+	cleanup   func() error
 }
 
 func (c *Conn) Read(p []byte) (n int, err error) {
+	<-c.readReady
 	return copy(p, c.data), io.EOF
 }
 

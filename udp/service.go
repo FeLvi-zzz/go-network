@@ -19,7 +19,7 @@ func (s *Service) Listen(addr []byte, port uint16) *Listener {
 	}
 
 	l := &Listener{
-		receiver: make(chan types.Address),
+		receiver: make(chan types.Address, 1),
 		conns:    make(map[string]*Conn),
 		sender:   s.sender,
 		laddr:    laddr,
@@ -42,11 +42,13 @@ func (s *Service) Dial(raddr []byte, rport uint16, laddr []byte, lport uint16) *
 
 	l := s.Listen(laddr, lport)
 	c := &Conn{
-		laddr:  la,
-		raddr:  ra,
-		sender: s.sender,
+		laddr:     la,
+		raddr:     ra,
+		sender:    s.sender,
+		readReady: make(chan struct{}),
 		cleanup: func() error {
 			delete(l.conns, ra.String())
+			delete(listenerMap, la.String())
 			return nil
 		},
 	}

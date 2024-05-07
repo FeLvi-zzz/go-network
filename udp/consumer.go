@@ -45,17 +45,21 @@ func (c *Consumer) Consume(b []byte, ph []byte, srcAddr []byte, dstAddr []byte) 
 	conn, ok := listener.conns[ra.String()]
 	if ok {
 		conn.data = up.Data.Bytes()
+		conn.readReady <- struct{}{}
 	} else {
-		listener.conns[ra.String()] = &Conn{
-			laddr:  la,
-			raddr:  ra,
-			data:   up.Data.Bytes(),
-			sender: c.sender,
+		newconn := &Conn{
+			laddr:     la,
+			raddr:     ra,
+			readReady: make(chan struct{}),
+			data:      up.Data.Bytes(),
+			sender:    c.sender,
 			cleanup: func() error {
 				delete(listener.conns, ra.String())
 				return nil
 			},
 		}
+		newconn.readReady <- struct{}{}
+		listener.conns[ra.String()] = newconn
 	}
 
 	listener.receiver <- ra
