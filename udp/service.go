@@ -42,10 +42,10 @@ func (s *Service) Dial(raddr []byte, rport uint16, laddr []byte, lport uint16) *
 
 	l := s.Listen(laddr, lport)
 	c := &Conn{
-		laddr:     la,
-		raddr:     ra,
-		sender:    s.sender,
-		readReady: make(chan struct{}),
+		laddr:    la,
+		raddr:    ra,
+		sender:   s.sender,
+		dataChan: make(chan []byte, 1),
 		cleanup: func() error {
 			delete(l.conns, ra.String())
 			delete(listenerMap, la.String())
