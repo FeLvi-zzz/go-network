@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"syscall"
+	"time"
 
 	"github.com/FeLvi-zzz/go-network/payload"
 	"github.com/FeLvi-zzz/go-network/util"
@@ -27,6 +28,8 @@ func NewHandler(config *Config, ethConsumer ethernetConsumer) *Handler {
 
 func (h *Handler) Handle() error {
 	for {
+		recvTime := time.Now()
+
 		b := make([]byte, 1518) // MTU 1500 + Ethernet header 14 + Ethernet FCS 4
 		_, _, err := syscall.Recvfrom(h.config.fd, b, 0)
 		if err != nil {
@@ -42,7 +45,7 @@ func (h *Handler) Handle() error {
 		}
 
 		h.config.mu.Lock()
-		fmt.Printf("\n-- recv packet --\n")
+		fmt.Printf("\n-- recv packet --\n%s\n", recvTime.String())
 		p.Inspect()
 		h.config.mu.Unlock()
 

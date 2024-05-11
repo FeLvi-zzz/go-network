@@ -3,6 +3,7 @@ package kernel
 import (
 	"fmt"
 	"syscall"
+	"time"
 
 	"github.com/FeLvi-zzz/go-network/payload"
 )
@@ -19,7 +20,7 @@ func NewSender(config *Config) *Sender {
 
 func (s *Sender) Send(payload payload.Payload) error {
 	s.config.mu.Lock()
-	fmt.Printf("\n-- send packet --\n")
+	fmt.Printf("\n-- send packet --\n%s\n", time.Now().String())
 	payload.Inspect()
 	s.config.mu.Unlock()
 
