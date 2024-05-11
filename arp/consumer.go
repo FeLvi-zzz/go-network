@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/FeLvi-zzz/go-network/payload"
+	"github.com/FeLvi-zzz/go-network/util"
 )
 
 type Consumer struct {
@@ -24,11 +25,13 @@ func (c *Consumer) Consume(b []byte) (payload.Payload, error) {
 		return payload.NewUnknownPayload(b), err
 	}
 
-	if pap.Op == ArpOp_RESPONSE {
-		globalArpTable[[4]byte(pap.Spa)] = [6]byte(pap.Sha)
+	if !bytes.Equal(pap.Tpa, c.config.localPrtAddr) {
+		return pap, util.ErrIgnorablePacket
 	}
 
-	if !(pap.Op == ArpOp_REQUEST && bytes.Equal(pap.Tpa, c.config.localPrtAddr)) {
+	if pap.Op == ArpOp_RESPONSE {
+		globalArpTable[[4]byte(pap.Spa)] = [6]byte(pap.Sha)
+		conn.res <- pap.Sha
 		return pap, nil
 	}
 

@@ -2,7 +2,6 @@ package main
 
 import (
 	"syscall"
-	"time"
 
 	"github.com/FeLvi-zzz/go-network/arp"
 	"github.com/FeLvi-zzz/go-network/ethernet"
@@ -27,7 +26,7 @@ func _main() error {
 		return err
 	}
 
-	srcHrdAddr := []byte{0x00, 0x15, 0x5d, 0x55, 0xab, 0x82}
+	srcHrdAddr := []byte{0x00, 0x15, 0x5d, 0x55, 0xa1, 0x19}
 	broadcastHrdAddr := []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 	srcPrtAddr := []byte{172, 20, 159, 90}
 	dstPrtAddr := []byte{172, 20, 144, 1}
@@ -60,20 +59,18 @@ func _main() error {
 
 	kernelHandler := kernel.NewHandler(kernelConfig, ethConsumer)
 
-	if err := arpHandler.Request(dstPrtAddr); err != nil {
-		return err
-	}
-
 	errch := make(chan error)
 	go func() {
 		errch <- kernelHandler.Handle()
 	}()
 	go func() {
+		_, err := arpHandler.Resolve(dstPrtAddr)
+		errch <- err
+	}()
+	go func() {
 		errch <- sample.Serve(ipv4Sender, srcPrtAddr, 3000)
 	}()
 	go func() {
-		// FIXME: wait arp table
-		time.Sleep(1 * time.Second)
 		errch <- sample.RequestHoge(ipv4Sender, dstPrtAddr, 4000, srcPrtAddr, 4000)
 	}()
 

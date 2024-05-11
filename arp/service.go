@@ -1,8 +1,23 @@
 package arp
 
 import (
+	"fmt"
+	"time"
+
 	ethtypes "github.com/FeLvi-zzz/go-network/ethernet/types"
 )
+
+type Conn struct {
+	res chan []byte
+}
+
+var conn *Conn
+
+func init() {
+	conn = &Conn{
+		res: make(chan []byte, 10),
+	}
+}
 
 type Handler struct {
 	config *Config
@@ -16,7 +31,7 @@ func NewHandler(config *Config, sender sender) *Handler {
 	}
 }
 
-func (h *Handler) Request(dstPrtAddr []byte) error {
+func (h *Handler) request(dstPrtAddr []byte) ([]byte, error) {
 	ap := NewPayload(
 		ethtypes.EtherType_IPv4,
 		ArpOp_REQUEST,
@@ -27,10 +42,17 @@ func (h *Handler) Request(dstPrtAddr []byte) error {
 	)
 
 	if err := h.sender.ArpSend(nil, ap); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	timer := time.NewTimer(1 * time.Second)
+
+	select {
+	case <-timer.C:
+		return nil, fmt.Errorf("arp timeout")
+	case addr := <-conn.res:
+		return addr, nil
+	}
 }
 
 func (h *Handler) Resolve(targetPrtAddr []byte) ([]byte, error) {
@@ -38,11 +60,10 @@ func (h *Handler) Resolve(targetPrtAddr []byte) ([]byte, error) {
 		return addr[:], nil
 	}
 
-	if err := h.Request(targetPrtAddr); err != nil {
+	addr, err := h.request(targetPrtAddr)
+	if err != nil {
 		return nil, err
 	}
-
-	addr := globalArpTable[[4]byte(targetPrtAddr)]
 
 	return addr[:], nil
 }
