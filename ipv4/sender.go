@@ -74,3 +74,19 @@ func (s *Sender) UDPPseudoHeader(srcAddr []byte, dstAddr []byte, datalen int) []
 
 	return b
 }
+
+func (s *Sender) TCPSend(targetAddr []byte, payload payload.Payload) error {
+	return s.send(targetAddr, types.Protocol_TCP, payload)
+}
+
+func (s *Sender) TCPPseudoHeader(srcAddr []byte, dstAddr []byte, datalen int) []byte {
+	b := make([]byte, 0, 12)
+	b = append(b, srcAddr...)
+	b = append(b, dstAddr...)
+	b = append(b, 0)
+	b = append(b, byte(types.Protocol_TCP))
+	b = append(b, byte(datalen>>8))
+	b = append(b, byte(datalen))
+
+	return b
+}

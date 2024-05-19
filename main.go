@@ -9,8 +9,10 @@ import (
 	"github.com/FeLvi-zzz/go-network/ipv4"
 	ipv4types "github.com/FeLvi-zzz/go-network/ipv4/types"
 	"github.com/FeLvi-zzz/go-network/kernel"
+	"github.com/FeLvi-zzz/go-network/tcp"
+	tcpsample "github.com/FeLvi-zzz/go-network/tcp/sample"
 	"github.com/FeLvi-zzz/go-network/udp"
-	"github.com/FeLvi-zzz/go-network/udp/sample"
+	udpsample "github.com/FeLvi-zzz/go-network/udp/sample"
 )
 
 func main() {
@@ -26,7 +28,7 @@ func _main() error {
 		return err
 	}
 
-	srcHrdAddr := []byte{0x00, 0x15, 0x5d, 0x55, 0xa1, 0x19}
+	srcHrdAddr := []byte{0x00, 0x15, 0x5d, 0xc5, 0x77, 0xf3}
 	broadcastHrdAddr := []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 	srcPrtAddr := []byte{172, 20, 159, 90}
 	dstPrtAddr := []byte{172, 20, 144, 1}
@@ -43,6 +45,7 @@ func _main() error {
 	))
 	icmpConfig := icmp.NewConfig()
 	udpConfig := udp.NewConfig()
+	tcpConfig := tcp.NewConfig()
 
 	kernelSender := kernel.NewSender(kernelConfig)
 	ethSender := ethernet.NewSender(ethConfig, kernelSender)
@@ -53,8 +56,9 @@ func _main() error {
 	icmpConsumer := icmp.NewConsumer(icmpConfig, ipv4Sender)
 	arpConsumer := arp.NewConsumer(arpConfig, ethSender)
 	udpConsumer := udp.NewConsumer(udpConfig, ipv4Sender)
+	tcpConsumer := tcp.NewConsumer(tcpConfig, ipv4Sender)
 
-	ipv4Consumer := ipv4.NewConsumer(ipv4Config, ethSender, icmpConsumer, udpConsumer)
+	ipv4Consumer := ipv4.NewConsumer(ipv4Config, ethSender, icmpConsumer, udpConsumer, tcpConsumer)
 	ethConsumer := ethernet.NewConsumer(ethConfig, arpConsumer, ipv4Consumer, kernelSender)
 
 	kernelHandler := kernel.NewHandler(kernelConfig, ethConsumer)
@@ -68,10 +72,13 @@ func _main() error {
 		errch <- err
 	}()
 	go func() {
-		errch <- sample.Serve(ipv4Sender, srcPrtAddr, 3000)
+		errch <- udpsample.Serve(ipv4Sender, srcPrtAddr, 3000)
 	}()
 	go func() {
-		errch <- sample.RequestHoge(ipv4Sender, dstPrtAddr, 4000, srcPrtAddr, 4000)
+		errch <- udpsample.RequestHoge(ipv4Sender, dstPrtAddr, 4000, srcPrtAddr, 4000)
+	}()
+	go func() {
+		errch <- tcpsample.Serve(ipv4Sender, srcPrtAddr, 5000)
 	}()
 
 	for {

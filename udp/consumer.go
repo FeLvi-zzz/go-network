@@ -3,6 +3,7 @@ package udp
 import (
 	"github.com/FeLvi-zzz/go-network/payload"
 	"github.com/FeLvi-zzz/go-network/udp/types"
+	"github.com/FeLvi-zzz/go-network/util"
 )
 
 type Consumer struct {
@@ -27,6 +28,9 @@ func (c *Consumer) Consume(b []byte, ph []byte, srcAddr []byte, dstAddr []byte) 
 	if err != nil {
 		return payload.NewUnknownPayload(b), err
 	}
+
+	// debug
+	return up, util.ErrIgnorablePacket
 
 	la := types.Address{
 		IP:   dstAddr,

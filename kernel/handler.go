@@ -12,6 +12,7 @@ import (
 
 type Handler struct {
 	config      *Config
+	logger      *Logger
 	ethConsumer ethernetConsumer
 }
 
@@ -36,18 +37,22 @@ func (h *Handler) Handle() error {
 			return err
 		}
 
+		li := logger.Reserve()
+
 		p, err := h.ethConsumer.Consume(b)
 		if errors.Is(err, payload.ErrUnknownPayload) {
+			logger.Log(li, func() {})
 			continue
 		}
 		if errors.Is(err, util.ErrIgnorablePacket) {
+			logger.Log(li, func() {})
 			continue
 		}
 
-		h.config.mu.Lock()
-		fmt.Printf("\n-- recv packet --\n%s\n", recvTime.String())
-		p.Inspect()
-		h.config.mu.Unlock()
+		logger.Log(li, func() {
+			fmt.Printf("\n-- recv packet --\n%s\n", recvTime.String())
+			p.Inspect()
+		})
 
 		if err != nil {
 			return err

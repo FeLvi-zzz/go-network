@@ -14,6 +14,7 @@ type Consumer struct {
 	sender          sender
 	icmpConsumer    icmpConsumer
 	udpConsumer     udpConsumer
+	tcpConsumer     tcpConsumer
 }
 
 type icmpConsumer interface {
@@ -21,6 +22,10 @@ type icmpConsumer interface {
 }
 
 type udpConsumer interface {
+	Consume(b []byte, ph []byte, srcAddr []byte, dstAddr []byte) (payload.Payload, error)
+}
+
+type tcpConsumer interface {
 	Consume(b []byte, ph []byte, srcAddr []byte, dstAddr []byte) (payload.Payload, error)
 }
 
@@ -62,13 +67,14 @@ func (f fragmentBuilder) Build(id uint16) ([]byte, error) {
 	}
 }
 
-func NewConsumer(config *Config, sender sender, icmpConsumer icmpConsumer, udpConsumer udpConsumer) *Consumer {
+func NewConsumer(config *Config, sender sender, icmpConsumer icmpConsumer, udpConsumer udpConsumer, tcpConsumer tcpConsumer) *Consumer {
 	return &Consumer{
 		config:          config,
 		fragmentBuilder: make(fragmentBuilder),
 		sender:          sender,
 		icmpConsumer:    icmpConsumer,
 		udpConsumer:     udpConsumer,
+		tcpConsumer:     tcpConsumer,
 	}
 }
 
@@ -101,6 +107,12 @@ func (c *Consumer) Consume(b []byte) (payload.Payload, error) {
 			v4p.Payload = icp
 		case types.Protocol_UDP:
 			up, err := c.udpConsumer.Consume(nrb, v4p.genUdpPseudoHeader(len(nrb)), v4p.SrcAddr[:], v4p.DstAddr[:])
+			if err != nil {
+				return payload.NewUnknownPayload(nrb), err
+			}
+			v4p.Payload = up
+		case types.Protocol_TCP:
+			up, err := c.tcpConsumer.Consume(nrb, v4p.genTcpPseudoHeader(len(nrb)), v4p.SrcAddr[:], v4p.DstAddr[:])
 			if err != nil {
 				return payload.NewUnknownPayload(nrb), err
 			}

@@ -2,6 +2,7 @@ package payload
 
 import (
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -49,7 +50,7 @@ func (b *DataPayload) Inspect() {
 		asciistr[i/16][i%16] = as
 	}
 
-	for i := 0; i < len(b.b)/16+1; i++ {
+	for i := 0; i < int(math.Ceil(float64(len(b.b))/16)); i++ {
 		for j := range hexstr[i] {
 			if hexstr[i][j] == "" {
 				hexstr[i][j] = "  "
