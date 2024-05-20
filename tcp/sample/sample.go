@@ -14,20 +14,25 @@ func Serve(sender *ipv4.Sender, addr []byte, port uint16) error {
 
 	for {
 		conn := l.Accept()
-		handle(conn, conn)
+		go handle(conn, conn)
 	}
 }
 
 func handle(r io.ReadCloser, w io.Writer) {
-	// defer r.Close()
+	defer r.Close()
 
-	s, err := io.ReadAll(r)
-	if err != nil {
-		panic(err)
+	fmt.Println("tcp handle!")
+
+	for {
+		s, err := io.ReadAll(r)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		fmt.Printf("req: `%s`\n", s)
+		fmt.Fprintf(w, "Hello, you said %s\n", s)
 	}
-
-	fmt.Printf("req: `%s`\n", s)
-	fmt.Fprintf(w, "Hello, you said %s\n", s)
 }
 
 func RequestHoge(sender *ipv4.Sender, raddr []byte, rport uint16, laddr []byte, lport uint16) error {

@@ -29,11 +29,27 @@ type Conn struct {
 }
 
 func (c *Conn) Read(p []byte) (n int, err error) {
-	return copy(p, <-c.dataChan), io.EOF
+	data := <-c.dataChan
+
+	if c.state == types.State_CLOSE_WAIT || c.state == types.State_CLOSED {
+		return copy(p, data), fmt.Errorf("network closed")
+	}
+
+	return copy(p, data), io.EOF
 }
 
 func (c *Conn) Close() error {
-	return c.cleanup()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.state = types.State_LAST_ACK
+	seg := NewSegment(c.laddr.Port, c.raddr.Port, c.sndnxt, c.rcvnxt, types.Flags_ACK|types.Flags_FIN, payload.NewDataPayload(nil))
+	c.sndnxt += 1
+	if err := c.send(seg); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *Conn) Write(p []byte) (n int, err error) {
@@ -53,7 +69,6 @@ func (c *Conn) consume(ts *Segment) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	fmt.Printf("state: %d\n", c.state)
 	switch c.state {
 	case types.State_LISTEN:
 		if ts.Flags&types.Flags_RST != 0 {
@@ -107,6 +122,7 @@ func (c *Conn) consume(ts *Segment) error {
 			c.state = types.State_ESTAB
 			c.sndwl1 = ts.SeqNum
 			c.sndwl2 = ts.AckNum
+			c.listener.receiver <- c.raddr
 		} else {
 			ns := NewSegment(c.laddr.Port, c.raddr.Port, ts.AckNum, 0, types.Flags_RST, payload.NewDataPayload(nil))
 			return c.send(ns)
@@ -127,14 +143,19 @@ func (c *Conn) consume(ts *Segment) error {
 				return
 			}
 			c.dataChan <- ts.Data.Bytes()
-			c.listener.receiver <- c.raddr
 		}(c)
 
-		if len(ts.Data.Bytes()) == 0 {
+		if len(ts.Data.Bytes()) == 0 && ts.Flags&types.Flags_FIN == 0 {
 			return nil
 		}
 
 		c.rcvnxt = ts.SeqNum + uint32(len(ts.Data.Bytes()))
+
+		if ts.Flags&types.Flags_FIN != 0 {
+			c.state = types.State_CLOSE_WAIT
+			c.rcvnxt += 1
+			close(c.dataChan)
+		}
 
 		ns := NewSegment(
 			c.laddr.Port,
@@ -144,7 +165,11 @@ func (c *Conn) consume(ts *Segment) error {
 			types.Flags_ACK,
 			payload.NewDataPayload(nil),
 		)
+
 		return c.send(ns)
+	case types.State_LAST_ACK:
+		c.state = types.State_CLOSED
+		return c.cleanup()
 	}
 
 	return nil
