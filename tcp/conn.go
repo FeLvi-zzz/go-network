@@ -5,6 +5,7 @@ import (
 	"io"
 	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/FeLvi-zzz/go-network/payload"
 	"github.com/FeLvi-zzz/go-network/tcp/types"
@@ -53,6 +54,12 @@ func (c *Conn) Close() error {
 }
 
 func (c *Conn) Write(p []byte) (n int, err error) {
+	for {
+		if c.state == types.State_ESTAB {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	data := payload.NewDataPayload(p)
@@ -90,7 +97,36 @@ func (c *Conn) consume(ts *Segment) error {
 			return c.send(ns)
 		}
 	case types.State_SYN_SENT:
-		return fmt.Errorf("not implemented")
+		if ts.Flags&types.Flags_ACK != 0 {
+			if ts.AckNum <= c.snduna || ts.AckNum > c.sndnxt {
+				ns := NewSegment(c.laddr.Port, c.raddr.Port, ts.AckNum, 0, types.Flags_RST, payload.NewDataPayload(nil))
+				return c.send(ns)
+			}
+		}
+
+		if ts.Flags&types.Flags_RST != 0 {
+			return c.cleanup()
+		}
+
+		if ts.Flags&types.Flags_SYN != 0 {
+			if ts.Flags&types.Flags_ACK != 0 {
+				c.rcvnxt = ts.SeqNum + 1
+				c.snduna = ts.AckNum
+				c.state = types.State_ESTAB
+
+				ns := NewSegment(c.laddr.Port, c.raddr.Port, c.sndnxt, c.rcvnxt, types.Flags_ACK, payload.NewDataPayload(nil))
+				return c.send(ns)
+			} else {
+				c.state = types.State_SYN_RCVD
+				c.sndwnd = ts.Window
+				c.sndwl1 = ts.SeqNum
+				c.sndwl2 = ts.AckNum
+
+				ns := NewSegment(c.laddr.Port, c.raddr.Port, c.sndnxt, c.rcvnxt, types.Flags_ACK, payload.NewDataPayload(nil))
+				return c.send(ns)
+			}
+		}
+		return nil
 	}
 
 	switch c.state {

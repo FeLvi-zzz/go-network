@@ -46,6 +46,10 @@ func (m *connMap) Load(key string) (*Conn, bool) {
 	return value.(*Conn), ok
 }
 
+func (m *connMap) Store(key string, value *Conn) {
+	m.m.Store(key, value)
+}
+
 func (m *connMap) LoadOrStore(key string, value *Conn) (*Conn, bool) {
 	actual, loaded := m.m.LoadOrStore(key, value)
 	return actual.(*Conn), loaded

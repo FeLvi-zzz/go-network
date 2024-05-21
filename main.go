@@ -28,7 +28,7 @@ func _main() error {
 		return err
 	}
 
-	srcHrdAddr := []byte{0x00, 0x15, 0x5d, 0xc5, 0x77, 0xf3}
+	srcHrdAddr := []byte{0x00, 0x15, 0x5d, 0x17, 0x6d, 0xfa}
 	broadcastHrdAddr := []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 	srcPrtAddr := []byte{172, 20, 159, 90}
 	dstPrtAddr := []byte{172, 20, 144, 1}
@@ -79,6 +79,9 @@ func _main() error {
 	}()
 	go func() {
 		errch <- tcpsample.Serve(ipv4Sender, srcPrtAddr, 5000)
+	}()
+	go func() {
+		errch <- tcpsample.RequestHoge(ipv4Sender, dstPrtAddr, 8000, srcPrtAddr, 6000)
 	}()
 
 	for {

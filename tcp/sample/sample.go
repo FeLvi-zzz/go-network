@@ -37,14 +37,18 @@ func handle(r io.ReadCloser, w io.Writer) {
 
 func RequestHoge(sender *ipv4.Sender, raddr []byte, rport uint16, laddr []byte, lport uint16) error {
 	s := tcp.NewService(sender)
-	conn := s.Dial(raddr, rport, laddr, lport)
-	defer conn.Close()
-
-	if _, err := conn.Write([]byte("hoge")); err != nil {
+	conn, err := s.Dial(raddr, rport, laddr, lport)
+	if err != nil {
 		return err
 	}
 
-	fmt.Println("send: hoge!!")
+	defer conn.Close()
+
+	if _, err := conn.Write([]byte("tcphoge")); err != nil {
+		return err
+	}
+
+	fmt.Println("send: tcphoge!!")
 
 	b := make([]byte, 100)
 	if _, err := conn.Read(b); err != nil && err != io.EOF {

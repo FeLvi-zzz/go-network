@@ -1,6 +1,12 @@
 package tcp
 
-import "github.com/FeLvi-zzz/go-network/tcp/types"
+import (
+	"math/rand"
+	"sync"
+
+	"github.com/FeLvi-zzz/go-network/payload"
+	"github.com/FeLvi-zzz/go-network/tcp/types"
+)
 
 type Service struct {
 	sender sender
@@ -30,7 +36,7 @@ func (s *Service) Listen(addr []byte, port uint16) *Listener {
 	return l
 }
 
-func (s *Service) Dial(raddr []byte, rport uint16, laddr []byte, lport uint16) *Conn {
+func (s *Service) Dial(raddr []byte, rport uint16, laddr []byte, lport uint16) (*Conn, error) {
 	la := types.Address{
 		IP:   laddr,
 		Port: lport,
@@ -41,11 +47,18 @@ func (s *Service) Dial(raddr []byte, rport uint16, laddr []byte, lport uint16) *
 	}
 
 	l := s.Listen(laddr, lport)
+	iss := rand.Uint32()
 	c := &Conn{
-		laddr:    la,
-		raddr:    ra,
-		sender:   s.sender,
-		dataChan: make(chan []byte, 100),
+		mu:           sync.Mutex{},
+		listener:     l,
+		state:        types.State_SYN_SENT,
+		isActiveOpen: true,
+		snduna:       iss,
+		sndnxt:       iss + 1,
+		laddr:        la,
+		raddr:        ra,
+		sender:       s.sender,
+		dataChan:     make(chan []byte, 100),
 		cleanup: func() error {
 			l.conns.Delete(ra.String())
 			globalListenerMap.Delete(la.String())
@@ -53,7 +66,12 @@ func (s *Service) Dial(raddr []byte, rport uint16, laddr []byte, lport uint16) *
 		},
 	}
 
-	// l.conns[ra.String()] = c
+	l.conns.Store(ra.String(), c)
 
-	return c
+	ns := NewSegment(c.laddr.Port, c.raddr.Port, iss, 0, types.Flags_SYN, payload.NewDataPayload(nil))
+	if err := c.send(ns); err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
