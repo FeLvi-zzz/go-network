@@ -44,13 +44,18 @@ func RequestHoge(sender *ipv4.Sender, raddr []byte, rport uint16, laddr []byte, 
 
 	defer conn.Close()
 
-	if _, err := conn.Write([]byte("tcphoge")); err != nil {
+	if _, err := conn.Write([]byte(`GET / HTTP/1.1
+Host: example.com
+User-Agent: go-network
+Accept: */*
+
+`)); err != nil {
 		return err
 	}
 
 	fmt.Println("send: tcphoge!!")
 
-	b := make([]byte, 100)
+	b := make([]byte, 1024*16)
 	if _, err := conn.Read(b); err != nil && err != io.EOF {
 		return err
 	}

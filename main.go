@@ -2,6 +2,7 @@ package main
 
 import (
 	"syscall"
+	"time"
 
 	"github.com/FeLvi-zzz/go-network/arp"
 	"github.com/FeLvi-zzz/go-network/ethernet"
@@ -28,7 +29,7 @@ func _main() error {
 		return err
 	}
 
-	srcHrdAddr := []byte{0x00, 0x15, 0x5d, 0x17, 0x6d, 0xfa}
+	srcHrdAddr := []byte{0x00, 0x15, 0x5d, 0x17, 0x6c, 0xc3}
 	broadcastHrdAddr := []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 	srcPrtAddr := []byte{172, 20, 159, 90}
 	dstPrtAddr := []byte{172, 20, 144, 1}
@@ -81,11 +82,12 @@ func _main() error {
 		errch <- tcpsample.Serve(ipv4Sender, srcPrtAddr, 5000)
 	}()
 	go func() {
-		errch <- tcpsample.RequestHoge(ipv4Sender, dstPrtAddr, 8000, srcPrtAddr, 6000)
+		errch <- tcpsample.RequestHoge(ipv4Sender, []byte{93, 184, 215, 14}, 80, srcPrtAddr, 6000)
 	}()
 
 	for {
 		if err := <-errch; err != nil {
+			time.Sleep(1 * time.Second)
 			return err
 		}
 	}
